@@ -1,7 +1,6 @@
 import os
 
 class AuthServer:
-
     def __init__(self):
         credentials_filename='credentials.txt'
         self.credentials = {}
@@ -40,3 +39,5 @@ class AuthServer:
 
     def is_valid_credential(text: str):
         return text.isprintable() and len(text) <= 16
+
+
