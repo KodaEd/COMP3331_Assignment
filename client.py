@@ -7,45 +7,86 @@
 """
 from socket import *
 import sys
+import json
 
-#Server would be running on the same host as Client
+
+# Starts the server
 if len(sys.argv) != 3:
-    print("\n===== Error usage, python3 TCPClient3.py SERVER_IP SERVER_PORT ======\n")
+    print("\n===== Error usage, python3 client.py SERVER_PORT ======\n")
     exit(0)
-serverHost = sys.argv[1]
-serverPort = int(sys.argv[2])
+serverPort = int(sys.argv[1])
+serverHost = "127.0.0.1"
 serverAddress = (serverHost, serverPort)
 
-# define a socket for the client side, it would be used to communicate with the server
-clientSocket = socket(AF_INET, SOCK_STREAM)
+# define a UDP socket for the client side
+clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-# build connection with the server and send message to it
-clientSocket.connect(serverAddress)
+def is_valid_credential(text: str):
+    return text.isprintable() and len(text) <= 16
 
 while True:
-    message = input("===== Please type any messsage you want to send to server: =====\n")
-    clientSocket.sendall(message.encode())
+    # Ask for the users password and username
+    username = input('Enter username: ')
+    password = input('Enter password: ')
 
-    # receive response from the server
-    # 1024 is a suggested packet size, you can specify it as 2048 or others
-    data = clientSocket.recv(1024)
-    receivedMessage = data.decode()
+    if not is_valid_credential(username) or not is_valid_credential(password):
+        print("Authentication failed. Please try again.")
+    
+    # Define a json
+    data = {
+        "username": username,
+        "password": password,
+        "command": "login"
+    }
 
-    # parse the message received from server and take corresponding actions
-    if receivedMessage == "":
-        print("[recv] Message from server is empty!")
-    elif receivedMessage == "user credentials request":
-        print("[recv] You need to provide username and password to login")
-    elif receivedMessage == "download filename":
-        print("[recv] You need to provide the file name you want to download")
-    else:
-        print("[recv] Message makes no sense")
+    json_data = json.dumps(data)
+    message = json_data.encode('utf-8')
+    clientSocket.settimeout(5)
+
+    try:
+        # Send JSON data to server
+        clientSocket.sendto(message, serverAddress)
+
+        # Wait for response from server
+        response, server = clientSocket.recvfrom(1024)
+        response_data: dict = json.loads(response.decode("utf-8"))
         
-    ans = input('\nDo you want to continue(y/n) :')
-    if ans == 'y':
-        continue
-    else:
+        if response_data["action"] != "authentication" and response["response"] != True:
+            print("Authentication failed. Please try again.")
+            continue
+        
         break
+    except socket.timeout:
+        # If no response is received within the timeout period
+        print("Server could not be reached. Please try again.")
+
+# # build connection with the server and send message to it
+# clientSocket.connect(serverAddress)
+
+# while True:
+#     message = input("===== Please type any messsage you want to send to server: =====\n")
+#     clientSocket.sendall(message.encode())
+
+#     # receive response from the server
+#     # 1024 is a suggested packet size, you can specify it as 2048 or others
+#     data = clientSocket.recv(1024)
+#     receivedMessage = data.decode()
+
+#     # parse the message received from server and take corresponding actions
+#     if receivedMessage == "":
+#         print("[recv] Message from server is empty!")
+#     elif receivedMessage == "user credentials request":
+#         print("[recv] You need to provide username and password to login")
+#     elif receivedMessage == "download filename":
+#         print("[recv] You need to provide the file name you want to download")
+#     else:
+#         print("[recv] Message makes no sense")
+        
+#     ans = input('\nDo you want to continue(y/n) :')
+#     if ans == 'y':
+#         continue
+#     else:
+#         break
 
 # close the socket
 clientSocket.close()
