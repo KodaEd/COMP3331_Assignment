@@ -34,6 +34,9 @@ class AuthServer:
             print("Error reading file contents.")
             raise
         return
+    
+    def login(self, username: str, password: str):
+        return self.credentials.get(username) == password
 
     def is_valid_credential(text: str):
         return text.isprintable() and len(text) <= 16
