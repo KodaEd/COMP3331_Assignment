@@ -8,7 +8,7 @@ class AuthServer:
         # loads the file of credentials
         cwd = os.getcwd()
         try:
-            with open(cwd + credentials_filename, 'r') as file:
+            with open(cwd + "/" + credentials_filename, 'r') as file:
                 for line in file:
                     line = line.strip()
                     contents = line.split(' ')
@@ -37,7 +37,7 @@ class AuthServer:
     def login(self, username: str, password: str):
         return self.credentials.get(username) == password
 
-    def is_valid_credential(text: str):
+    def is_valid_credential(self, text: str):
         return text.isprintable() and len(text) <= 16
 
 

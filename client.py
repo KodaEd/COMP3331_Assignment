@@ -5,13 +5,13 @@
     
     Author: Wei Song (Tutor for COMP3331/9331)
 """
-from socket import *
+import socket
 import sys
 import json
 
 
 # Starts the server
-if len(sys.argv) != 3:
+if len(sys.argv) != 2:
     print("\n===== Error usage, python3 client.py SERVER_PORT ======\n")
     exit(0)
 serverPort = int(sys.argv[1])
@@ -19,7 +19,7 @@ serverHost = "127.0.0.1"
 serverAddress = (serverHost, serverPort)
 
 # define a UDP socket for the client side
-clientSocket = socket(AF_INET, SOCK_DGRAM)
+clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def is_valid_credential(text: str):
     return text.isprintable() and len(text) <= 16
@@ -49,9 +49,16 @@ while True:
 
         # Wait for response from server
         response, server = clientSocket.recvfrom(1024)
-        response_data: dict = json.loads(response.decode("utf-8"))
+
+        # Check if response is empty
+        print(response)
+        if not response:
+            print("No response received from server.")
+            continue
+
+        response_data: dict = json.loads(response)
         
-        if response_data["action"] != "authentication" and response["response"] != True:
+        if response_data["action"] != "authentication" or response_data["response"] != True:
             print("Authentication failed. Please try again.")
             continue
         
@@ -59,6 +66,10 @@ while True:
     except socket.timeout:
         # If no response is received within the timeout period
         print("Server could not be reached. Please try again.")
+    except Exception as e:
+        # Catch all other exceptions and print the error message
+        print(f"An unexpected error occurred: {e}")
+    
 
 # # build connection with the server and send message to it
 # clientSocket.connect(serverAddress)
