@@ -88,6 +88,47 @@ class CommandClient(Thread):
                     print(f"{len(response_data["response"])} file found:")
                     for i in response_data["response"]:
                         print(i)
+            
+            if command == "GET":
+                # get it from the server
+                return
+                # then get it from the peers
+
+class RequestHandler(Thread):
+    def __init__(self, tcpSocket: socket, address: tuple[str, int]):
+        super().__init__()
+        self.connection = tcpSocket
+        self.address = address
+    
+    def run(self):
+        try:
+            request_data = self.connection.recv(1024).decode('utf-8')
+            request: dict = json.loads(request_data)
+            filename = request.get("filename")
+
+            if request.get("command") == "GET" and filename:
+                    with open(filename, "rb") as file:
+                        while chunk := file.read(1024):
+                            self.connection.sendall(chunk)
+                    print(f"File {filename} sent to {self.address}")
+        finally:
+            self.connection.close()
+
+
+class RequestListener(Thread):
+    def __init__(self, tcpSocket: socket):
+        super().__init__()
+        self.socket = tcpSocket
+    
+    def run(self):
+        while True:
+            # Accept new connections
+            connection, address = self.socket.accept()
+            print(f"Accepted connection from {address}")
+            # Spawn a new thread to handle the file request
+            handler = RequestHandler(connection, address)
+            handler.start()
+
 
 
 
