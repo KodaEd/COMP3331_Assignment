@@ -53,19 +53,30 @@ class CommandClient(Thread):
                 self.udpClient.sendto(json.dumps({"command": "LPF"}).encode('utf-8'), self.serverAddress)
                 response, server = udpClientSocket.recvfrom(1024)
                 response_data: dict = json.loads(response)
-                print(response_data)
+                if len(response_data["response"]) <= 0:
+                    print("No files published")
+                else:
+                    print(f"{len(response_data["response"])} file published:")
+                    for i in response_data["response"]:
+                        print(i)
 
             if command == "pub":
                 self.udpClient.sendto(json.dumps({"command": "PUB", "content": extra}).encode('utf-8'), self.serverAddress)
                 response, server = udpClientSocket.recvfrom(1024)
                 response_data: dict = json.loads(response)
-                print(response_data)
+                if response_data["response"] == "OK":
+                    print("File published successfully")
+                else:
+                    print("File publication failed")
 
             if command == "unp":
                 self.udpClient.sendto(json.dumps({"command": "UNP", "content": extra}).encode('utf-8'), self.serverAddress)
                 response, server = udpClientSocket.recvfrom(1024)
                 response_data: dict = json.loads(response)
-                print(response_data)
+                if response_data["response"] == "OK":
+                    print("File unpublished successfully")
+                else:
+                    print("File unpublication failed")
 
 
 
