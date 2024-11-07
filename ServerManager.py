@@ -123,4 +123,18 @@ class ServerManager:
 
 
         return results
+    
+    def find_active_peer_with_file(self, filename):
+        now = datetime.now()
+        threshold = now - timedelta(seconds=3)
 
+        # get first user that is still active
+        if filename not in self.published_files:
+            return None
+        
+        for username in self.published_files[filename]:
+            # make sure the delta is less than 3
+            if self.heartbeat[username] >= threshold:
+                return username
+            
+        return None

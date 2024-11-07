@@ -80,19 +80,21 @@ class ServerThread(Thread):
                 "response": self.manager.find_files_by_substring(self.message["content"], clientAddress)
             } 
 
+        if command == "GET":
+            filename = self.message["content"]
+
+            result = self.manager.find_active_peer_with_file(filename)
+
+            if result is None:
+                data = {
+                    "response": "Err"
+                }
+            else:
+                data = {
+                    "response": result
+                }
 
         serverSocket.sendto(json.dumps(data).encode('utf-8'), self.clientAddress)
-
-
-
-
-
-
-
-
-        # print("Received data from", self.clientAddress, self.message)
-
-
 
     def process_login(self):
         response = json.dumps({"action": "authentication", "response": True})
