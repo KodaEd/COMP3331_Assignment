@@ -61,6 +61,12 @@ class CommandClient(Thread):
                 response_data: dict = json.loads(response)
                 print(response_data)
 
+            if command == "unp":
+                self.udpClient.sendto(json.dumps({"command": "UNP", "content": extra}).encode('utf-8'), self.serverAddress)
+                response, server = udpClientSocket.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                print(response_data)
+
 
 
 

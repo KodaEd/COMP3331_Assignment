@@ -94,5 +94,21 @@ class ServerManager:
 
         return True
 
+    def unpublish_file(self, filename, ipaddress):
+        username = self.get_username_from_ip(ipaddress)
+        
+        if filename not in self.published_files:
+            return False
+
+        if username not in self.published_files[filename]:
+            return False
+        
+        self.published_files[filename].remove(username)
+
+        # If no one else publish this file just delete
+        if not self.published_files[filename]:
+            del self.published_files[filename]
+
+        return True
 
 

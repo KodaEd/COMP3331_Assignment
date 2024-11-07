@@ -65,6 +65,16 @@ class ServerThread(Thread):
                 "response": "OK"
             }
 
+        if command == "UNP":
+            if self.manager.unpublish_file(self.message["content"], clientAddress):
+                data = {
+                    "response": "OK"
+                }
+            else:
+                data = {
+                    "response": "Err"
+                }
+
         serverSocket.sendto(json.dumps(data).encode('utf-8'), self.clientAddress)
 
 
