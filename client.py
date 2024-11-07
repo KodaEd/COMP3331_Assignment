@@ -2,8 +2,10 @@ import socket
 import sys
 import json
 import time
-from threading import Thread
+from threading import Thread, Event
 import os
+
+stopEvent = Event()
 
 class HeartbeatClient(Thread):
     def __init__(self, clientSocket: socket.socket, serverAddress: tuple[str, int]):
@@ -13,7 +15,7 @@ class HeartbeatClient(Thread):
         self.message = json.dumps({"command": "HBT"}).encode('utf-8')
     
     def run(self):
-        while True:
+        while not stopEvent.is_set():
             try:
                 # Send the message to the server
                 self.clientSocket.sendto(self.message, self.serverAddress)
@@ -28,11 +30,11 @@ class CommandClient(Thread):
         self.serverAddress = serverAddress
     
     def run(self):
-        while True:
+        while not stopEvent.is_set():
             userInput = input("> ")
             processedInput = userInput.split(" ")
             if len(processedInput) > 2 or len(processedInput) <= 0:
-                raise#TODO fix this shit
+                print("Unkown command: Available commands are: get, lap, lpf, pub, sch, unp, xit")
 
             command, *extra = processedInput
             extra = extra[0] if extra else None
@@ -41,7 +43,6 @@ class CommandClient(Thread):
                 data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
                 response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
-                print(response_data)
                 if len(response_data["response"]) <= 0:
                     print("No active peers")
                 else:
@@ -96,7 +97,6 @@ class CommandClient(Thread):
                 # wait for a response from the server
                 response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
-                print(response_data)
                 peerPort = response_data["response"]
                 
                 if not peerPort:
@@ -121,7 +121,9 @@ class CommandClient(Thread):
                     print(f"Error: {e} during file transfer.")
 
             elif command == "xit":
-                exit
+                print("Goodbye!")
+                stopEvent.set()
+                break
             else:
                 print("Unkown command: Available commands are: get, lap, lpf, pub, sch, unp, xit")
             
@@ -152,15 +154,21 @@ class RequestListener(Thread):
     def __init__(self, tcpSocket: socket.socket):
         super().__init__()
         self.socket = tcpSocket
+        self.socket.settimeout(1)
     
     def run(self):
-        while True:
-            # Accept new connections
-            connection, address = self.socket.accept()
-            print(f"Accepted connection from {address}")
-            # Spawn a new thread to handle the file request
-            handler = RequestHandler(connection, address)
-            handler.start()
+        while not stopEvent.is_set():
+            try:
+                # Accept new connections
+                connection, address = self.socket.accept()
+                # Spawn a new thread to handle the file request
+                handler = RequestHandler(connection, address)
+                handler.start()
+            except TimeoutError:
+                continue
+            except Exception as e:
+                print(f"Error accepting connections: {e}")
+                break
 
 
 
@@ -214,7 +222,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udpClientSocket:
                 response, server = udpClientSocket.recvfrom(1024)
 
                 # Check if response is empty
-                print(response)
                 if not response:
                     print("No response received from server.")
                     continue
@@ -249,5 +256,3 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udpClientSocket:
         listener.join()
         heartbeat.join()
         command.join()
-
-        udpClientSocket.settimeout(5)

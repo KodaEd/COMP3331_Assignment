@@ -32,7 +32,6 @@ class ServerThread(Thread):
 
         command = self.message.get("command")
         print(f"{datetime.now()}: {clientAddress[1]}: Recieved {command} from {auth.get_username_from_ip(clientAddress)}")
-        print(self.message)
 
         if command == "AUTH":
             if self.manager.login(self.message["username"], self.message["password"], clientAddress, self.message["tcpPort"]):
@@ -98,7 +97,6 @@ class ServerThread(Thread):
 
     def process_login(self):
         response = json.dumps({"action": "authentication", "response": True})
-        print("[send] " + response)
         serverSocket.sendto(response.encode(), self.clientAddress)
 
 
