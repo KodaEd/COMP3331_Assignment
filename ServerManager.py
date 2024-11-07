@@ -73,8 +73,16 @@ class ServerManager:
 
         return recent_users
 
-    def get_all_published_files(self,):
-        return self.published_files.keys()
+    def get_all_published_files_of_user(self, ipaddress):
+        username = self.get_username_from_ip(ipaddress)
+
+        result_list = []
+
+        for key, value in self.published_files.items():
+            if username in value:
+                result_list.append(key)
+
+        return result_list
     
     def publish_file(self, filename, ipaddress):
         username = self.get_username_from_ip(ipaddress)

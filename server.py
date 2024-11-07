@@ -56,7 +56,7 @@ class ServerThread(Thread):
 
         if command == "LPF":
             data = {
-                "response": list(self.manager.get_all_published_files())
+                "response": list(self.manager.get_all_published_files_of_user(clientAddress))
             }
         
         if command == "PUB":
