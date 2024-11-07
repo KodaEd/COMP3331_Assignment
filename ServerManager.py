@@ -9,6 +9,7 @@ class ServerManager:
         self.heartbeat = {}
         self.clientAddresses = {}
         self.published_files = {}
+        self.clientTCP = {}
 
         # loads the file of credentials
         cwd = os.getcwd()
@@ -40,11 +41,12 @@ class ServerManager:
             raise
         return
     
-    def login(self, username: str, password: str, ipaddress):
+    def login(self, username: str, password: str, ipaddress, tcpPort):
         if self.credentials.get(username) != password:
             return False
         
         self.clientAddresses[ipaddress] = username
+        self.clientTCP[username] = tcpPort
         self.heartbeat[username] = datetime.now()
         return True
 
@@ -135,6 +137,5 @@ class ServerManager:
         for username in self.published_files[filename]:
             # make sure the delta is less than 3
             if self.heartbeat[username] >= threshold:
-                return username
-            
+                return self.clientTCP[username]
         return None

@@ -35,7 +35,7 @@ class ServerThread(Thread):
         print(self.message)
 
         if command == "AUTH":
-            if self.manager.login(self.message["username"], self.message["password"], clientAddress):
+            if self.manager.login(self.message["username"], self.message["password"], clientAddress, self.message["tcpPort"]):
                 data = {
                     "response": "OK",
                 }
