@@ -31,8 +31,12 @@ class CommandClient(Thread):
         while True:
             userInput = input("> ")
             processedInput = userInput.split(" ")
-            command, *others = processedInput
+            if len(processedInput) > 2 or len(processedInput) <= 0:
+                raise#TODO fix this shit
 
+            command, *extra = processedInput
+            extra = extra[0] if extra else None
+            
             if command == "lap":
                 data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
                 response, server = udpClientSocket.recvfrom(1024)
@@ -44,6 +48,18 @@ class CommandClient(Thread):
                     print(f"{len(response_data["response"])} active peers:")
                     for i in response_data["response"]:
                         print(i)
+
+            if command == "lpf":
+                self.udpClient.sendto(json.dumps({"command": "LPF"}).encode('utf-8'), self.serverAddress)
+                response, server = udpClientSocket.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                print(response_data)
+
+            if command == "pub":
+                self.udpClient.sendto(json.dumps({"command": "PUB", "content": extra}).encode('utf-8'), self.serverAddress)
+                response, server = udpClientSocket.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                print(response_data)
 
 
 

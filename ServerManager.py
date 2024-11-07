@@ -2,12 +2,13 @@ import os
 from datetime import datetime, timedelta
 
 
-class AuthServer:
+class ServerManager:
     def __init__(self):
         credentials_filename='credentials.txt'
         self.credentials = {}
         self.heartbeat = {}
         self.clientAddresses = {}
+        self.published_files = {}
 
         # loads the file of credentials
         cwd = os.getcwd()
@@ -71,6 +72,19 @@ class AuthServer:
         recent_users.remove(username)
 
         return recent_users
+
+    def get_all_published_files(self,):
+        return self.published_files.keys()
+    
+    def publish_file(self, filename, ipaddress):
+        username = self.get_username_from_ip(ipaddress)
+
+        if filename not in self.published_files:
+            self.published_files[filename] = []
+        
+        self.published_files[filename].append(username)
+
+        return True
 
 
 
