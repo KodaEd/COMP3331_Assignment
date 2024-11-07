@@ -3,9 +3,10 @@ import sys
 import json
 import time
 from threading import Thread
+import os
 
 class HeartbeatClient(Thread):
-    def __init__(self, clientSocket: socket, serverAddress: tuple[str, int]):
+    def __init__(self, clientSocket: socket.socket, serverAddress: tuple[str, int]):
         super().__init__()
         self.clientSocket = clientSocket
         self.serverAddress = serverAddress
@@ -21,7 +22,7 @@ class HeartbeatClient(Thread):
             time.sleep(2)
 
 class CommandClient(Thread):
-    def __init__(self, udpClient: socket, tcpClient: socket, serverAddress: tuple[str, int]):
+    def __init__(self, udpClient: socket.socket, tcpClient: socket.socket, serverAddress: tuple[str, int]):
         super().__init__()
         self.udpClient = udpClient
         self.tcpClient = tcpClient
@@ -39,7 +40,7 @@ class CommandClient(Thread):
             
             if command == "lap":
                 data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
                 print(response_data)
                 if len(response_data["response"]) <= 0:
@@ -51,7 +52,7 @@ class CommandClient(Thread):
 
             if command == "lpf":
                 self.udpClient.sendto(json.dumps({"command": "LPF"}).encode('utf-8'), self.serverAddress)
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
                 if len(response_data["response"]) <= 0:
                     print("No files published")
@@ -62,7 +63,7 @@ class CommandClient(Thread):
 
             if command == "pub":
                 self.udpClient.sendto(json.dumps({"command": "PUB", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
                 if response_data["response"] == "OK":
                     print("File published successfully")
@@ -71,7 +72,7 @@ class CommandClient(Thread):
 
             if command == "unp":
                 self.udpClient.sendto(json.dumps({"command": "UNP", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
                 if response_data["response"] == "OK":
                     print("File unpublished successfully")
@@ -80,7 +81,7 @@ class CommandClient(Thread):
             
             if command == "sch":
                 self.udpClient.sendto(json.dumps({"command": "SCH", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(1024)
                 response_data: dict = json.loads(response)
                 if len(response_data["response"]) <= 0:
                     print("No files found")
@@ -89,9 +90,32 @@ class CommandClient(Thread):
                     for i in response_data["response"]:
                         print(i)
             
-            if command == "GET":
+            if command == "get":
                 # get it from the server
-                return
+                self.udpClient.sendto(json.dumps({"command": "GET", "content": extra}))
+
+                # wait for a response from the server
+                response, server =  self.udpClient.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                peerPort = response_data["response"]
+                if not peerPort:
+                    raise #TODO somrthing
+                try:
+                    self.tcpClient.connect(("127.0.0.1", peerPort))
+                    # TODO ENSURE THE FILES ARE CORRECT
+                    self.tcpClient.sendall(json.dumps({"command": "GET", "filename": extra}).encode('utf-8'))
+
+                    cwd = os.getcwd()
+
+                    with open(cwd + "/" + extra, "wb") as file:
+                        while True:
+                            data = self.tcpClient.recv(1024)
+                            if not data:
+                                break
+                            file.write(data)
+                except Exception as e:
+                    print(f"Error: {e}")
+                print(f"{extra} downloaded successfully")
                 # then get it from the peers
 
 class RequestHandler(Thread):
@@ -107,7 +131,8 @@ class RequestHandler(Thread):
             filename = request.get("filename")
 
             if request.get("command") == "GET" and filename:
-                    with open(filename, "rb") as file:
+                    cwd = os.getcwd()
+                    with open(cwd + "/" + filename, "rb") as file:
                         while chunk := file.read(1024):
                             self.connection.sendall(chunk)
                     print(f"File {filename} sent to {self.address}")
