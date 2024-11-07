@@ -92,6 +92,7 @@ class ServerThread(Thread):
                     "response": result
                 }
 
+        print(f"{datetime.now()}: sent {data} to {auth.get_username_from_ip(clientAddress)}")
         serverSocket.sendto(json.dumps(data).encode('utf-8'), self.clientAddress)
 
     def process_login(self):

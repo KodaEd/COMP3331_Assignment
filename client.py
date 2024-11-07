@@ -43,10 +43,11 @@ class CommandClient(Thread):
                 data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
                 response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
-                if len(response_data["response"]) <= 0:
+                length = len(response_data["response"])
+                if length <= 0:
                     print("No active peers")
                 else:
-                    print(f"{len(response_data["response"])} active peers:")
+                    print(f"{length} active peers:")
                     for i in response_data["response"]:
                         print(i)
 
@@ -54,10 +55,11 @@ class CommandClient(Thread):
                 self.udpClient.sendto(json.dumps({"command": "LPF"}).encode('utf-8'), self.serverAddress)
                 response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
-                if len(response_data["response"]) <= 0:
+                length = len(response_data["response"])
+                if length <= 0:
                     print("No files published")
                 else:
-                    print(f"{len(response_data["response"])} file published:")
+                    print(f"{length} file published:")
                     for i in response_data["response"]:
                         print(i)
 
@@ -83,10 +85,11 @@ class CommandClient(Thread):
                 self.udpClient.sendto(json.dumps({"command": "SCH", "content": extra}).encode('utf-8'), self.serverAddress)
                 response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
-                if len(response_data["response"]) <= 0:
+                length = len(response_data["response"])
+                if length <= 0:
                     print("No files found")
                 else:
-                    print(f"{len(response_data["response"])} file found:")
+                    print(f"{length} file found:")
                     for i in response_data["response"]:
                         print(i)
             
@@ -105,7 +108,6 @@ class CommandClient(Thread):
 
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_client:
-                        print(peerPort)
                         tcp_client.connect(("127.0.0.1", peerPort))
                         tcp_client.sendall(json.dumps({"command": "GET", "filename": extra}).encode('utf-8'))
 
