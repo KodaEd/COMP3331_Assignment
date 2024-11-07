@@ -111,4 +111,16 @@ class ServerManager:
 
         return True
 
+    def find_files_by_substring(self, substring, ipaddress):
+        username = self.get_username_from_ip(ipaddress)
+
+        results = []
+
+        for key, value in self.published_files.items():
+
+            if substring in key and username not in value:
+                results.append(key)
+
+
+        return results
 

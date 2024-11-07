@@ -77,6 +77,17 @@ class CommandClient(Thread):
                     print("File unpublished successfully")
                 else:
                     print("File unpublication failed")
+            
+            if command == "sch":
+                self.udpClient.sendto(json.dumps({"command": "SCH", "content": extra}).encode('utf-8'), self.serverAddress)
+                response, server = udpClientSocket.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                if len(response_data["response"]) <= 0:
+                    print("No files found")
+                else:
+                    print(f"{len(response_data["response"])} file found:")
+                    for i in response_data["response"]:
+                        print(i)
 
 
 

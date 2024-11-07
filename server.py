@@ -74,6 +74,12 @@ class ServerThread(Thread):
                 data = {
                     "response": "Err"
                 }
+        
+        if command == "SCH":
+            data = {
+                "response": self.manager.find_files_by_substring(self.message["content"], clientAddress)
+            } 
+
 
         serverSocket.sendto(json.dumps(data).encode('utf-8'), self.clientAddress)
 
