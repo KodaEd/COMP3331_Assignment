@@ -41,7 +41,7 @@ class CommandClient(Thread):
             
             if command == "lap":
                 data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 if len(response_data["response"]) <= 0:
                     print("No active peers")
@@ -52,7 +52,7 @@ class CommandClient(Thread):
 
             elif command == "lpf":
                 self.udpClient.sendto(json.dumps({"command": "LPF"}).encode('utf-8'), self.serverAddress)
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 if len(response_data["response"]) <= 0:
                     print("No files published")
@@ -63,7 +63,7 @@ class CommandClient(Thread):
 
             elif command == "pub":
                 self.udpClient.sendto(json.dumps({"command": "PUB", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 if response_data["response"] == "OK":
                     print("File published successfully")
@@ -72,7 +72,7 @@ class CommandClient(Thread):
 
             elif command == "unp":
                 self.udpClient.sendto(json.dumps({"command": "UNP", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 if response_data["response"] == "OK":
                     print("File unpublished successfully")
@@ -81,7 +81,7 @@ class CommandClient(Thread):
             
             elif command == "sch":
                 self.udpClient.sendto(json.dumps({"command": "SCH", "content": extra}).encode('utf-8'), self.serverAddress)
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 if len(response_data["response"]) <= 0:
                     print("No files found")
@@ -95,23 +95,24 @@ class CommandClient(Thread):
                 self.udpClient.sendto(json.dumps({"command": "GET", "content": extra}).encode('utf-8'), self.serverAddress)
 
                 # wait for a response from the server
-                response, server =  self.udpClient.recvfrom(1024)
+                response, server =  self.udpClient.recvfrom(2048)
                 response_data: dict = json.loads(response)
                 peerPort = response_data["response"]
                 
-                if not peerPort:
-                    print("No peer found with the requested file.")
+                if not peerPort or peerPort == "ERR":
+                    print("File not found")
                     continue
 
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_client:
+                        print(peerPort)
                         tcp_client.connect(("127.0.0.1", peerPort))
                         tcp_client.sendall(json.dumps({"command": "GET", "filename": extra}).encode('utf-8'))
 
                         cwd = os.getcwd()
                         with open(os.path.join(cwd, extra), "wb") as file:
                             while True:
-                                data = tcp_client.recv(1024)
+                                data = tcp_client.recv(2048)
                                 if not data:
                                     break
                                 file.write(data)
@@ -137,14 +138,14 @@ class RequestHandler(Thread):
     
     def run(self):
         try:
-            request_data = self.connection.recv(1024).decode('utf-8')
+            request_data = self.connection.recv(2048).decode('utf-8')
             request: dict = json.loads(request_data)
             filename = request.get("filename")
 
             if request.get("command") == "GET" and filename:
                     cwd = os.getcwd()
                     with open(cwd + "/" + filename, "rb") as file:
-                        while chunk := file.read(1024):
+                        while chunk := file.read(2048):
                             self.connection.sendall(chunk)
         finally:
             self.connection.close()
@@ -159,9 +160,9 @@ class RequestListener(Thread):
     def run(self):
         while not stopEvent.is_set():
             try:
-                # Accept new connections
+                # accept connection
                 connection, address = self.socket.accept()
-                # Spawn a new thread to handle the file request
+                # spawn a new thread 
                 handler = RequestHandler(connection, address)
                 handler.start()
             except TimeoutError:
@@ -215,13 +216,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udpClientSocket:
             udpClientSocket.settimeout(5)
 
             try:
-                # Send JSON data to server
                 udpClientSocket.sendto(message, serverAddress)
 
-                # Wait for response from server
-                response, server = udpClientSocket.recvfrom(1024)
+                response, server = udpClientSocket.recvfrom(2048)
 
-                # Check if response is empty
                 if not response:
                     print("No response received from server.")
                     continue
@@ -233,10 +231,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udpClientSocket:
 
                 break
             except socket.timeout:
-                # If no response is received within the timeout period
                 print("Server could not be reached. Please try again.")
             except Exception as e:
-                # Catch all other exceptions and print the error message
                 print(f"An unexpected error occurred: {e}")
 
         # Create 3 threads:

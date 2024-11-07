@@ -4,7 +4,6 @@ import sys, json
 from ServerManager import ServerManager
 from datetime import datetime
 
-
 # acquire server host and port from command line parameter
 if len(sys.argv) != 2:
     print("\n===== Error usage, python3 UDPServer.py SERVER_PORT ======\n")
@@ -44,7 +43,7 @@ class ServerThread(Thread):
                 }
 
         if command == "HBT":
-            # Dont need to send anything back
+            # dont need to send anything back
             self.manager.log_heartbeat(clientAddress)
             return
 
@@ -71,7 +70,7 @@ class ServerThread(Thread):
                 }
             else:
                 data = {
-                    "response": "Err"
+                    "response": "ERR"
                 }
         
         if command == "SCH":
@@ -86,7 +85,7 @@ class ServerThread(Thread):
 
             if result is None:
                 data = {
-                    "response": "Err"
+                    "response": "ERR"
                 }
             else:
                 data = {
@@ -105,8 +104,9 @@ print("===== Waiting for client requests... =====")
 
 auth = ServerManager()
 while True:
-    # Wait to receive data from any client
-    data, clientAddress = serverSocket.recvfrom(1024)
-    # Start a new thread to handle the client's request
+    # wait get request
+    data, clientAddress = serverSocket.recvfrom(2048)
+    # do the request
     clientThread = ServerThread(clientAddress, data, auth)
     clientThread.start()
+    clientThread.join()

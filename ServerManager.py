@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 
+#TODO increase the send amount
 
 class ServerManager:
     def __init__(self):
@@ -43,6 +44,9 @@ class ServerManager:
     
     def login(self, username: str, password: str, ipaddress, tcpPort):
         if self.credentials.get(username) != password:
+            return False
+        
+        if username in self.heartbeat and self.heartbeat[username] is not None and (datetime.now() - self.heartbeat[username]) <= timedelta(seconds=3):
             return False
         
         self.clientAddresses[ipaddress] = username
@@ -90,9 +94,9 @@ class ServerManager:
         username = self.get_username_from_ip(ipaddress)
 
         if filename not in self.published_files:
-            self.published_files[filename] = []
+            self.published_files[filename] = set()
         
-        self.published_files[filename].append(username)
+        self.published_files[filename].add(username)
 
         return True
 
