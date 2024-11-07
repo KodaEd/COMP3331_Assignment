@@ -1,13 +1,52 @@
-"""
-    Python 3
-    Usage: python3 TCPClient3.py localhost 12000
-    coding: utf-8
-    
-    Author: Wei Song (Tutor for COMP3331/9331)
-"""
 import socket
 import sys
 import json
+import time
+from threading import Thread
+
+class HeartbeatClient(Thread):
+    def __init__(self, clientSocket: socket, serverAddress: tuple[str, int]):
+        super().__init__()
+        self.clientSocket = clientSocket
+        self.serverAddress = serverAddress
+        self.message = json.dumps({"command": "HBT"}).encode('utf-8')
+    
+    def run(self):
+        while True:
+            try:
+                # Send the message to the server
+                self.clientSocket.sendto(self.message, self.serverAddress)
+            except Exception as e:
+                print(f"Error Failed to send heartbeat: {e}")
+            time.sleep(2)
+
+class CommandClient(Thread):
+    def __init__(self, udpClient: socket, tcpClient: socket, serverAddress: tuple[str, int]):
+        super().__init__()
+        self.udpClient = udpClient
+        self.tcpClient = tcpClient
+        self.serverAddress = serverAddress
+    
+    def run(self):
+        while True:
+            userInput = input("> ")
+            processedInput = userInput.split(" ")
+            command, *others = processedInput
+
+            if command == "lap":
+                data = self.udpClient.sendto(json.dumps({"command": "LAP"}).encode('utf-8'), self.serverAddress)
+                response, server = udpClientSocket.recvfrom(1024)
+                response_data: dict = json.loads(response)
+                print(response_data)
+                if len(response_data["response"]) <= 0:
+                    print("No active peers")
+                else:
+                    print(f"{len(response_data["response"])} active peers:")
+                    for i in response_data["response"]:
+                        print(i)
+
+
+
 
 
 # Starts the server
@@ -19,85 +58,70 @@ serverHost = "127.0.0.1"
 serverAddress = (serverHost, serverPort)
 
 # define a UDP socket for the client side
-clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udpClientSocket:
 
-def is_valid_credential(text: str):
-    return text.isprintable() and len(text) <= 16
+    def is_valid_credential(text: str):
+        return text.isprintable() and len(text) <= 16
 
-while True:
-    # Ask for the users password and username
-    username = input('Enter username: ')
-    password = input('Enter password: ')
+    # Login procedour, 
+    while True:
+        # Ask for the users password and username
+        username = input('Enter username: ')
+        password = input('Enter password: ')
 
-    if not is_valid_credential(username) or not is_valid_credential(password):
-        print("Authentication failed. Please try again.")
-    
-    # Define a json
-    data = {
-        "username": username,
-        "password": password,
-        "command": "login"
-    }
-
-    json_data = json.dumps(data)
-    message = json_data.encode('utf-8')
-    clientSocket.settimeout(5)
-
-    try:
-        # Send JSON data to server
-        clientSocket.sendto(message, serverAddress)
-
-        # Wait for response from server
-        response, server = clientSocket.recvfrom(1024)
-
-        # Check if response is empty
-        print(response)
-        if not response:
-            print("No response received from server.")
-            continue
-
-        response_data: dict = json.loads(response)
-        
-        if response_data["action"] != "authentication" or response_data["response"] != True:
+        if not is_valid_credential(username) or not is_valid_credential(password):
             print("Authentication failed. Please try again.")
-            continue
         
-        break
-    except socket.timeout:
-        # If no response is received within the timeout period
-        print("Server could not be reached. Please try again.")
-    except Exception as e:
-        # Catch all other exceptions and print the error message
-        print(f"An unexpected error occurred: {e}")
-    
+        # Define the json
+        data = {
+            "command": "AUTH",
+            "username": username,
+            "password": password,
+        }
 
-# # build connection with the server and send message to it
-# clientSocket.connect(serverAddress)
+        json_data = json.dumps(data)
+        message = json_data.encode('utf-8')
+        udpClientSocket.settimeout(5)
 
-# while True:
-#     message = input("===== Please type any messsage you want to send to server: =====\n")
-#     clientSocket.sendall(message.encode())
+        try:
+            # Send JSON data to server
+            udpClientSocket.sendto(message, serverAddress)
 
-#     # receive response from the server
-#     # 1024 is a suggested packet size, you can specify it as 2048 or others
-#     data = clientSocket.recv(1024)
-#     receivedMessage = data.decode()
+            # Wait for response from server
+            response, server = udpClientSocket.recvfrom(1024)
 
-#     # parse the message received from server and take corresponding actions
-#     if receivedMessage == "":
-#         print("[recv] Message from server is empty!")
-#     elif receivedMessage == "user credentials request":
-#         print("[recv] You need to provide username and password to login")
-#     elif receivedMessage == "download filename":
-#         print("[recv] You need to provide the file name you want to download")
-#     else:
-#         print("[recv] Message makes no sense")
-        
-#     ans = input('\nDo you want to continue(y/n) :')
-#     if ans == 'y':
-#         continue
-#     else:
-#         break
+            # Check if response is empty
+            print(response)
+            if not response:
+                print("No response received from server.")
+                continue
 
-# close the socket
-clientSocket.close()
+            response_data: dict = json.loads(response)
+            if response_data["response"] != "OK":
+                print("Authentication failed. Please try again.")
+                continue
+
+            break
+        except socket.timeout:
+            # If no response is received within the timeout period
+            print("Server could not be reached. Please try again.")
+        except Exception as e:
+            # Catch all other exceptions and print the error message
+            print(f"An unexpected error occurred: {e}")
+
+    # Create 3 threads:
+    #   - Client Commands
+    #   - Recieving Connections
+    #   - Heartbeat
+    print("Welcome to BitTrickle!")
+    print("Available commands are: get, lap, lpf, pub, sch, unp, xit")
+
+    heartbeat = HeartbeatClient(udpClientSocket, serverAddress)
+    command = CommandClient(udpClientSocket, udpClientSocket, serverAddress)
+    heartbeat.start()
+    command.start()
+
+    heartbeat.join()
+    command.join()
+
+    udpClientSocket.settimeout(5)
